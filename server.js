@@ -1,4 +1,4 @@
-require("dotenv").config({ path: "./.env" }); // ✅ Fixed config line
+require("dotenv").config();
 
 console.log("🔍 .env Debug Output:");
 console.log("PORT =", process.env.PORT);
@@ -19,22 +19,22 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// OpenAI
+// ✅ OPENAI Init
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 console.log("✅ OpenAI initialized");
 
-// MongoDB
+// ✅ MongoDB Init
 console.log("🔌 Connecting to MongoDB at:", process.env.MONGODB_URI);
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
 }).then(() => {
   console.log("📦 Connected to MongoDB");
 }).catch((err) => {
   console.error("❌ MongoDB connection error:", err.message);
 });
 
-// Redis
+// ✅ Redis Init
 const redisClient = createClient({ url: process.env.REDIS_URL });
 redisClient.connect().then(() => {
   console.log("⚡ Connected to Redis");
@@ -42,7 +42,7 @@ redisClient.connect().then(() => {
   console.error("❌ Redis connection error:", err.message);
 });
 
-// Schema
+// ✅ Mongo Schema
 const playerLogSchema = new mongoose.Schema({
   playerId: String,
   prompt: String,
@@ -51,12 +51,25 @@ const playerLogSchema = new mongoose.Schema({
 });
 const PlayerLog = mongoose.model("PlayerLog", playerLogSchema);
 
-// Health
+// ✅ HEALTH CHECK
 app.get("/", (req, res) => {
   res.send("✅ AI Developer Backend is running");
 });
 
-// Core AI Route
+// ✅ ChatBridge Route (ChatGPT-to-backend)
+app.post("/chatbridge", async (req, res) => {
+  const { token, type, payload } = req.body;
+
+  if (token !== process.env.CHATGPT_SECRET) {
+    return res.status(403).json({ error: "❌ Invalid token" });
+  }
+
+  console.log("📡 ChatBridge received:", { type, payload });
+
+  return res.json({ status: "✅ ChatBridge connection successful", echo: { type, payload } });
+});
+
+// ✅ AI Core Route (Roblox ↔ ChatGPT)
 app.post("/ai-process", async (req, res) => {
   const { prompt, playerId } = req.body;
 
@@ -99,23 +112,7 @@ app.post("/ai-process", async (req, res) => {
   }
 });
 
-// 🔗 Bridge for external systems (e.g., ChatGPT → Black Vault)
-app.post("/chatbridge", async (req, res) => {
-  const { type, payload, token } = req.body;
-
-  if (token !== process.env.CHATGPT_SECRET) {
-    return res.status(403).json({ error: "Unauthorized" });
-  }
-
-  console.log("📡 Bridge request received:", type, payload);
-
-  if (type === "layout") {
-    return res.json({ status: "Layout accepted", rooms: payload.rooms?.length });
-  }
-
-  return res.json({ status: "Unknown type", type });
-});
-
+// ✅ START SERVER
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
